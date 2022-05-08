@@ -23,7 +23,7 @@ import (
 	"os"
 	"strings"
 
-	// "github.com/davecgh/go-spew/spew"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/goccy/go-yaml"
 	"github.com/posener/complete"
 	"github.com/synfinatic/aws-sso-cli/internal/utils"
@@ -70,13 +70,11 @@ var AvailableAwsRegions []string = []string{
 // NewPredictor loads our cache file (if exists) and loads the values
 func NewPredictor(cacheFile, configFile string) *Predictor {
 	defaults := map[string]interface{}{}
-	override := sso.OverrideSettings{}
+	override := sso.OverrideSettings{
+		DefaultSSO: getSSOValue(),
+	}
 	p := Predictor{
 		configFile: configFile,
-	}
-	ssoName := os.Getenv("AWS_SSO")
-	if ssoName != "" {
-		override.DefaultSSO = ssoName
 	}
 
 	settings, err := sso.LoadSettings(configFile, cacheFile, defaults, override)
@@ -179,4 +177,24 @@ func (p *Predictor) ProfileComplete() complete.Predictor {
 	}
 
 	return complete.PredictSet(profiles...)
+}
+
+// getSSOValue scans our os.Args and returns our SSO if specified,
+// or fails to the AWS_SSO env var
+func getSSOValue() string {
+	sso := ""
+	args := os.Args[1:]
+	log.Errorf("args without program = %s", spew.Sdump(args))
+	for i, v := range args {
+		if v == "-S" || v == "--sso" {
+			if i+1 < len(args) {
+				sso = args[i+1]
+			}
+		}
+	}
+	if sso == "" {
+		sso = os.Getenv("AWS_SSO")
+	}
+	log.Errorf("setting SSO to %s", sso)
+	return sso
 }
