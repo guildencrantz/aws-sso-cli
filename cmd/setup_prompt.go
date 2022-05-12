@@ -226,19 +226,40 @@ func promptDefaultRegion(defaultValue string) string {
 
 // promptUseFirefox asks if the user wants to use firefox containers
 // and if so, returns the path to the Firefox binary
-func promptUseFirefox(defaultValue string) string {
+func promptUseFirefox(useFirefox, useGranted bool, browserPath string) (bool, bool, string) {
 	var val string
-	var i int
+	var i, curPos int
 	var err error
 
 	fmt.Printf("\n")
 
-	label := "Use Firefox containers to open URLs? (FirefoxOpenInContainer)"
+	items := []selectOptions{
+		{
+			Name:  "No Firefox container support",
+			Value: "none",
+		},
+		{
+			Name:  "Use 'Open Url In Container' Firefox plugin (FirefoxOpenUrlInContainer)",
+			Value: "firefox",
+		},
+		{
+			Name:  "Use 'Granted Containers' Firefox plugin (GrantedOpenUrlInContainer)",
+			Value: "granted",
+		},
+	}
+
+	if useFirefox {
+		curPos = 1
+	} else if useGranted {
+		curPos = 2
+	}
+
+	label := "Use Firefox containers to open URLs?"
 	sel := promptui.Select{
 		Label:        label,
 		HideSelected: false,
-		Items:        yesNoItems,
-		CursorPos:    yesNoPos(defaultValue != ""),
+		Items:        items,
+		CursorPos:    curPos,
 		Stdout:       &utils.BellSkipper{},
 		Templates:    makeSelectTemplate(label),
 	}
@@ -246,18 +267,28 @@ func promptUseFirefox(defaultValue string) string {
 		log.Fatal(err)
 	}
 
-	if yesNoItems[i].Value == "No" {
-		return ""
+	if items[i].Value == "none" {
+		return false, false, ""
 	}
 
 	fmt.Printf("\n")
 
-	fmt.Printf("Ensure that you have the 'Open external links in a container' plugin for Firefox.")
+	switch items[i].Value {
+	case "firefox":
+		fmt.Printf("Ensure that you have the 'Open external links in a container' plugin for Firefox.")
+		useFirefox = true
+	case "granted":
+		fmt.Printf("Ensure that you have the 'Granted Containers' plugin for Firefox.")
+		useGranted = true
+	default:
+		log.Fatalf("Unsupported promptUseFirefox option: %s", items[i].Value)
+	}
+
 	label = "Path to Firefox binary (UrlExecCommand)"
 	prompt := promptui.Prompt{
 		Label:     label,
 		Stdout:    &utils.BellSkipper{},
-		Default:   firefoxDefaultBrowserPath(defaultValue),
+		Default:   firefoxDefaultBrowserPath(browserPath),
 		Pointer:   promptui.PipeCursor,
 		Validate:  validateBinary,
 		Templates: makePromptTemplate(label),
@@ -266,7 +297,7 @@ func promptUseFirefox(defaultValue string) string {
 		log.Fatal(err)
 	}
 
-	return val
+	return useFirefox, useGranted, val
 }
 
 func promptUrlAction(defaultValue string, useFirefox bool) string {

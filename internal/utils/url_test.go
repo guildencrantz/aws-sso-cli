@@ -150,6 +150,17 @@ func TestFirefoxContainersUrl(t *testing.T) {
 		FirefoxContainerUrl("https://synfin.net", "Testy", "", ""))
 }
 
+func TestGrantedContainersUrl(t *testing.T) {
+	assert.Equal(t, "ext+granted-containers:name=Test&url=https%3A%2F%2Fsynfin.net&color=blue&icon=fingerprint",
+		GrantedContainerUrl("https://synfin.net", "Test", "blue", "fingerprint"))
+
+	assert.Equal(t, "ext+granted-containers:name=Testy&url=https%3A%2F%2Fsynfin.net&color=turquoise&icon=briefcase",
+		GrantedContainerUrl("https://synfin.net", "Testy", "Bad", "Value"))
+
+	assert.Equal(t, "ext+granted-containers:name=Testy&url=https%3A%2F%2Fsynfin.net&color=turquoise&icon=briefcase",
+		GrantedContainerUrl("https://synfin.net", "Testy", "", ""))
+}
+
 func TestCommandBuilder(t *testing.T) {
 	_, _, err := commandBuilder([]string{}, "url")
 	assert.Error(t, err)

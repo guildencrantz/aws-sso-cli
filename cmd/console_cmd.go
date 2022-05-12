@@ -319,7 +319,7 @@ func openConsoleAccessKey(ctx *RunContext, creds *storage.RoleCredentials,
 	}
 	awsUrl := login.GetUrl()
 
-	if ctx.Settings.FirefoxOpenUrlInContainer {
+	if ctx.Settings.UseContainer() {
 		awsUrl = firefoxContainerUrl(ctx, accountId, role, awsUrl)
 	}
 
@@ -339,7 +339,13 @@ func firefoxContainerUrl(ctx *RunContext, accountId int64, role, awsUrl string) 
 	color := rFlat.Tags["Color"]
 	icon := rFlat.Tags["Icon"]
 
-	return utils.FirefoxContainerUrl(awsUrl, profile, color, icon)
+	var url string
+	if ctx.Settings.FirefoxOpenUrlInContainer {
+		url = utils.FirefoxContainerUrl(awsUrl, profile, color, icon)
+	} else {
+		url = utils.GrantedContainerUrl(awsUrl, profile, color, icon)
+	}
+	return url
 }
 
 type LoginResponse struct {

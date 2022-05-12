@@ -105,7 +105,7 @@ func setupWizard(ctx *RunContext, reconfig, addSSO bool) error {
 	var defaultLevel, firefoxBrowserPath, browser, configProfilesUrlAction string
 	var hLimit, hMinutes, cacheRefresh int64
 	var consoleDuration int32
-	var autoConfigCheck bool
+	var autoConfigCheck, firefoxContainers, grantedContainers bool
 	var urlExecCommand []string
 
 	// Don't run setup twice
@@ -127,7 +127,7 @@ func setupWizard(ctx *RunContext, reconfig, addSSO bool) error {
 		defaultRegion = ctx.Settings.DefaultRegion
 		urlAction = ctx.Settings.UrlAction
 		urlExecCommand = ctx.Settings.UrlExecCommand
-		if ctx.Settings.FirefoxOpenUrlInContainer {
+		if ctx.Settings.UseContainer() {
 			firefoxBrowserPath = urlExecCommand[0]
 		}
 		autoConfigCheck = ctx.Settings.AutoConfigCheck
@@ -136,6 +136,8 @@ func setupWizard(ctx *RunContext, reconfig, addSSO bool) error {
 		hMinutes = ctx.Settings.HistoryMinutes
 		browser = ctx.Settings.Browser
 		consoleDuration = ctx.Settings.ConsoleDuration
+		firefoxContainers = ctx.Settings.FirefoxOpenUrlInContainer
+		grantedContainers = ctx.Settings.GrantedOpenUrlInContainer
 
 		// upgrade deprecated config option
 		configProfilesUrlAction = ctx.Settings.ConfigProfilesUrlAction
@@ -192,11 +194,14 @@ func setupWizard(ctx *RunContext, reconfig, addSSO bool) error {
 	}
 
 	// First check if using Firefox w/ Containers
-	firefoxBrowserPath = promptUseFirefox(firefoxBrowserPath)
+	firefoxContainers, grantedContainers, firefoxBrowserPath = promptUseFirefox(
+		firefoxContainers, grantedContainers, firefoxBrowserPath)
+
+	ctx.Settings.FirefoxOpenUrlInContainer = firefoxContainers
+	ctx.Settings.GrantedOpenUrlInContainer = grantedContainers
 
 	// if yes, then configure urlAction = 'exec' and our UrlExecCommand
 	if firefoxBrowserPath != "" {
-		ctx.Settings.FirefoxOpenUrlInContainer = true
 		ctx.Settings.UrlAction = "exec"
 		ctx.Settings.UrlExecCommand = []string{
 			firefoxBrowserPath,
@@ -209,7 +214,7 @@ func setupWizard(ctx *RunContext, reconfig, addSSO bool) error {
 	}
 
 	ctx.Settings.ConfigProfilesUrlAction = promptConfigProfilesUrlAction(
-		configProfilesUrlAction, ctx.Settings.UrlAction, ctx.Settings.FirefoxOpenUrlInContainer)
+		configProfilesUrlAction, ctx.Settings.UrlAction, firefoxContainers || grantedContainers)
 
 	// should we prompt user to override default browser?
 	if ctx.Settings.UrlAction == "open" || ctx.Settings.ConfigProfilesUrlAction == "open" {
@@ -218,7 +223,7 @@ func setupWizard(ctx *RunContext, reconfig, addSSO bool) error {
 
 	// Does either action call `exec` without firefox containers?
 	if ctx.Settings.UrlAction == "exec" || ctx.Settings.ConfigProfilesUrlAction == "exec" {
-		if !ctx.Settings.FirefoxOpenUrlInContainer {
+		if !ctx.Settings.UseContainer() {
 			ctx.Settings.UrlExecCommand = promptUrlExecCommand(urlExecCommand)
 		}
 	}

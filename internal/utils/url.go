@@ -59,23 +59,22 @@ var FIREFOX_PLUGIN_ICONS []string = []string{
 	// "fence",  not a valid input, even if it is user selectable
 }
 
+// https://github.com/common-fate/granted-containers
+const GRANTED_CONTAINER_FORMAT = "ext+granted-containers:name=%s&url=%s&color=%s&icon=%s"
+
+// https://github.com/honsiorovskyi/open-url-in-container
 const FIREFOX_CONTAINER_FORMAT = "ext+container:name=%s&url=%s&color=%s&icon=%s"
-
-// selectElement selects a deterministic pseudo-random option given a string
-// as the seed
-func selectElement(seed string, options []string) string {
-	var v = byte(0)
-	var bytes = []byte(seed)
-
-	for i := 0; i < len(seed); i++ {
-		v += bytes[i] // overflows
-	}
-	v %= byte(len(options))
-	return options[int(v)]
-}
 
 // FirefoxContainerUrl generates a URL for Firefox Containers
 func FirefoxContainerUrl(target, name, color, icon string) string {
+	return containerUrl(FIREFOX_CONTAINER_FORMAT, target, name, color, icon)
+}
+
+func GrantedContainerUrl(target, name, color, icon string) string {
+	return containerUrl(GRANTED_CONTAINER_FORMAT, target, name, color, icon)
+}
+
+func containerUrl(format, target, name, color, icon string) string {
 	if !StrListContains(color, FIREFOX_PLUGIN_COLORS) {
 		if color != "" {
 			log.Warnf("Invalid Firefox Container color: %s", color)
@@ -90,7 +89,20 @@ func FirefoxContainerUrl(target, name, color, icon string) string {
 		icon = selectElement(name, FIREFOX_PLUGIN_ICONS)
 	}
 
-	return fmt.Sprintf(FIREFOX_CONTAINER_FORMAT, name, url.QueryEscape(target), color, icon)
+	return fmt.Sprintf(format, name, url.QueryEscape(target), color, icon)
+}
+
+// selectElement selects a deterministic pseudo-random option given a string
+// as the seed
+func selectElement(seed string, options []string) string {
+	var v = byte(0)
+	var bytes = []byte(seed)
+
+	for i := 0; i < len(seed); i++ {
+		v += bytes[i] // overflows
+	}
+	v %= byte(len(options))
+	return options[int(v)]
 }
 
 var printWriter io.Writer = os.Stderr
@@ -135,8 +147,6 @@ func execWithUrl(command []string, url string) error {
 	log.Debugf("exec command as array: %s", cmdStr)
 	cmd = exec.Command(program, cmdList...)
 
-	//	var stderr bytes.Buffer
-	//	cmd.Stderr = &stderr
 	err = cmd.Start() // Don't use Run() because sometimes firefox does bad things?
 	if err != nil {
 		err = fmt.Errorf("Unable to exec `%s`: %s", cmdStr, err)
@@ -159,7 +169,7 @@ type UrlAction int
 const (
 	UrlActionClip     UrlAction = iota // copy to clipboard
 	UrlActionPrint                     // print message & url to stderr
-	UrlActionPrintUrl                  // print only the  url to stderr
+	UrlActionPrintUrl                  // print only the url to stderr
 	UrlActionExec                      // Exec comand
 	UrlActionOpen                      // auto-open in default or specified browser
 )
@@ -230,6 +240,8 @@ func (h *HandleUrl) Open(url, pre, post string) error {
 		} else {
 			log.Infof("Opening URL in %s.\n", browser)
 		}
+	default:
+		return fmt.Errorf("Unhandled UrlAction: %d", h.Action)
 	}
 
 	return err

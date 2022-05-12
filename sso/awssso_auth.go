@@ -101,6 +101,8 @@ func (as *AWSSSO) reauthenticate() error {
 	awsUrl := auth.VerificationUriComplete
 	if as.SSOConfig.settings.FirefoxOpenUrlInContainer {
 		awsUrl = utils.FirefoxContainerUrl(awsUrl, as.StoreKey(), "blue", "fingerprint")
+	} else if as.SSOConfig.settings.GrantedOpenUrlInContainer {
+		awsUrl = utils.GrantedContainerUrl(awsUrl, as.StoreKey(), "blue", "fingerprint")
 	}
 
 	urlOpener := utils.NewHandleUrl(as.urlAction, as.browser, as.urlExecCommand)

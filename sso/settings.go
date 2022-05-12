@@ -53,8 +53,9 @@ type Settings struct {
 	ConsoleDuration           int32                  `koanf:"ConsoleDuration" yaml:"ConsoleDuration,omitempty"`
 	JsonStore                 string                 `koanf:"JsonStore" yaml:"JsonStore,omitempty"`
 	CacheRefresh              int64                  `koanf:"CacheRefresh" yaml:"CacheRefresh,omitempty"`
-	AutoConfigCheck           bool                   `koanf:"AutoConfigCheck" yaml:"AutoConfigCheck"`
-	FirefoxOpenUrlInContainer bool                   `koanf:"FirefoxOpenUrlInContainer" yaml:"FirefoxOpenUrlInContainer"`
+	AutoConfigCheck           bool                   `koanf:"AutoConfigCheck" yaml:"AutoConfigCheck,omitempty"`
+	FirefoxOpenUrlInContainer bool                   `koanf:"FirefoxOpenUrlInContainer" yaml:"FirefoxOpenUrlInContainer,omitempty"`
+	GrantedOpenUrlInContainer bool                   `koanf:"GrantedOpenUrlInContainer" yaml:"GrantedOpenUrlInContainer,omitempty"`
 	UrlAction                 string                 `koanf:"UrlAction" yaml:"UrlAction,omitempty"`
 	Browser                   string                 `koanf:"Browser" yaml:"Browser,omitempty"`
 	ConfigUrlAction           string                 `koanf:"ConfigUrlAction" yaml:"ConfigUrlAction,omitempty"` // deprecated
@@ -411,6 +412,13 @@ func (s *Settings) GetAllProfiles(open string) (*ProfileMap, error) {
 	}
 
 	return &profiles, nil
+}
+
+func (s *Settings) UseContainer() bool {
+	if s.FirefoxOpenUrlInContainer || s.GrantedOpenUrlInContainer {
+		return true
+	}
+	return false
 }
 
 // UniqueCheck verifies that all of the profiles are unique
